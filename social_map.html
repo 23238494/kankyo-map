@@ -134,7 +134,7 @@ function renderMarkers() {
   markers = [];
   allData.forEach(row => {
     const color = getColor(row, currentMode);
-    const circle = L.circleMarker([row.lat, row.lng], {
+    const circle = L.circleMarker([row.latitude, row.longitude], {
       radius: 9,
       fillColor: color,
       color: '#fff',
@@ -195,14 +195,14 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 async function loadData() {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/social_results?select=*&order=created_at.desc&limit=5000`,
+      `${SUPABASE_URL}/rest/v1/analysis_results?select=*&order=created_at.desc&limit=5000`,
       { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
     );
     allData = await res.json();
     document.getElementById('count').textContent = `${allData.length} 件`;
     if (allData.length > 0) {
       // データがあれば最初の点に移動
-      map.setView([allData[0].lat, allData[0].lng], 13);
+      map.setView([allData[0].latitude, allData[0].longitude], 13);
     }
     renderMarkers();
   } catch(e) {
