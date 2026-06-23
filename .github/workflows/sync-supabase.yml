@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-       - name: Supabaseからデータ取得
+      - name: Supabaseからデータ取得
         env:
           KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
@@ -20,7 +20,7 @@ jobs:
           nslookup fstcofvakssanygeyqcpt.supabase.co || echo "DNS FAILED"
           echo "=== curl verbose ==="
           curl -v -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "https://fstcofvakssanygeyqcpt.supabase.co/rest/v1/analysis_results?select=*&order=created_at.desc&limit=5000" -o social_data.json || echo "CURL EXIT: $?"
-      
+
       - name: 変更があればコミット
         run: |
           git config user.name "github-actions[bot]"
