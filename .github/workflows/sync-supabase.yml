@@ -1,16 +1,14 @@
 name: Supabaseデータ同期
-
 on:
   schedule:
-    - cron: '*/10 * * * *'  # 10分ごとに自動実行
-  workflow_dispatch:          # 手動実行ボタン
-
-permissions:
-  contents: write
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -24,8 +22,8 @@ jobs:
 
       - name: 変更があればコミット
         run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add social_data.json
-          git diff --staged --quiet || git commit -m "sync: update social data"
+          git diff --cached --quiet || git commit -m "sync: update social_data.json"
           git push
