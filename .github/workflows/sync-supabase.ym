@@ -1,0 +1,31 @@
+name: Supabaseデータ同期
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # 10分ごとに自動実行
+  workflow_dispatch:          # 手動実行ボタン
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Supabaseからデータ取得
+        run: |
+          curl -sf \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "https://fstcofvakssanygeyqcpt.supabase.co/rest/v1/analysis_results?select=*&order=created_at.desc&limit=5000" \
+            -o social_data.json
+
+      - name: 変更があればコミット
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add social_data.json
+          git diff --staged --quiet || git commit -m "sync: update social data"
+          git push
