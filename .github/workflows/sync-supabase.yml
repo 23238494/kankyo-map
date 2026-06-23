@@ -17,9 +17,9 @@ jobs:
           KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           echo "=== DNS test ==="
-          nslookup fstcofvakssanygeyqcpt.supabase.co || echo "DNS FAILED"
+          nslookup fstcofvakssjygeyqcpt.supabase.co || echo "DNS FAILED"
           echo "=== curl verbose ==="
-          curl -v -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "https://fstcofvakssanygeyqcpt.supabase.co/rest/v1/analysis_results?select=*&order=created_at.desc&limit=5000" -o social_data.json || echo "CURL EXIT: $?"
+          curl -v -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "https://fstcofvakssjygeyqcpt.supabase.co/rest/v1/analysis_results?select=*&order=created_at.desc&limit=5000" -o social_data.json || echo "CURL EXIT: $?"
 
       - name: 変更があればコミット
         run: |
