@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "created_at": "2026-06-22T00:00:00",
+    "latitude": 35.6762,
+    "longitude": 139.6503,
+    "green_rate": 0.25,
+    "sky_rate": 0.18,
+    "address": "東京都渋谷区"
+  },
+  {
+    "id": 2,
+    "created_at": "2026-06-22T00:00:00",
+    "latitude": 35.0116,
+    "longitude": 135.7681,
+    "green_rate": 0.32,
+    "sky_rate": 0.21,
+    "address": "京都府京都市"
+  }
+]
