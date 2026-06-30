@@ -15,18 +15,17 @@
     #header {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       background: rgba(255,255,255,0.95);
-      padding: 8px 16px;
-      display: flex; align-items: center; gap: 12px;
+      padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-    #header h1 { font-size: 15px; font-weight: bold; color: #333; white-space: nowrap; }
 
     /* モード切替 */
     #mode-bar {
-      display: flex; gap: 4px;
+      display: flex; gap: 4px; flex-shrink: 0;
     }
     .mode-btn {
-      padding: 4px 12px; border-radius: 16px; border: none;
+      padding: 4px 10px; border-radius: 16px; border: none;
       font-size: 12px; font-weight: 600; cursor: pointer;
       transition: all 0.18s;
       background: #eee; color: #666;
@@ -35,8 +34,17 @@
     .mode-btn[data-mode="combined"].active { background: #7B1FA2; }
     .mode-btn[data-mode="green"].active    { background: #388E3C; }
     .mode-btn[data-mode="sky"].active      { background: #1976D2; }
+    .mode-btn[data-mode="svf"].active      { background: #1A237E; }
+    .mode-sep { width: 1px; height: 18px; background: #ddd; align-self: center; margin: 0 1px; }
 
-    #count { font-size: 11px; color: #888; margin-left: auto; white-space: nowrap; }
+    #count {
+      font-size: 11px; color: #888; margin-left: auto;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      min-width: 0; max-width: 160px;
+    }
+    #count.error {
+      max-width: none; color: #c62828; font-size: 10px;
+    }
 
     /* 凡例 */
     #legend {
@@ -55,6 +63,21 @@
       font-size: 9px; color: #666; margin-top: 2px; width: 130px;
     }
 
+    /* ホームボタン */
+    #home-btn {
+      position: fixed; bottom: 24px; right: 12px; z-index: 1000;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #fff; border: 2px solid #7B1FA2; color: #7B1FA2;
+      font-size: 20px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: background 0.15s, color 0.15s;
+    }
+    #home-btn:hover { background: #7B1FA2; color: #fff; }
+
+    /* Leaflet ズームコントロールをヘッダーの下に移動 */
+    .leaflet-top { margin-top: 46px; }
+
     /* ポップアップ */
     .popup-inner { font-size: 13px; line-height: 1.7; min-width: 140px; }
     .popup-inner .rate { font-size: 18px; font-weight: bold; }
@@ -65,35 +88,37 @@
 <body>
 
 <div id="header">
-  <h1>🌿 ソーシャルマップ</h1>
   <div id="mode-bar">
     <button class="mode-btn active" data-mode="combined">総合</button>
-    <button class="mode-btn"        data-mode="green">緑視率</button>
-    <button class="mode-btn"        data-mode="sky">天空率</button>
+    <button class="mode-btn"        data-mode="green">緑視度</button>
+    <button class="mode-btn"        data-mode="sky">開放度</button>
+    <span class="mode-sep"></span>
+    <button class="mode-btn"        data-mode="svf">天空率</button>
   </div>
-  <span id="count">読み込み中…</span>
+  <span id="count">データを取得中…</span>
 </div>
 
 <div id="map"></div>
 
+<button id="home-btn" title="初期位置に戻る">⌂</button>
+
 <div id="legend">
-  <div id="legend-title">総合（緑視率＋天空率）</div>
+  <div id="legend-title">総合（緑視度＋開放度）</div>
   <canvas id="legend-bar" width="130" height="14"></canvas>
   <div id="legend-labels"></div>
 </div>
 
 <script>
-const SUPABASE_URL      = 'https://fstcofvakssanygeyqcpt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzdGNvZnZha3NzanlnZXlxY3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMzU2ODksImV4cCI6MjA5NjgxMTY4OX0.S9Zq9o2yIzGPVnI5Dk8PQLtBg3k8InFUNx5srHzYqBs';
-
 // グラデーション定義
 const GRADIENTS = {
   combined: { min: [206,147,216], max: [106,27,154], maxRate: 1.0,
-               title: '総合（緑視率＋天空率）', labels: ['0%','25%','50%','75%','≥100%'] },
+               title: '総合（緑視度＋開放度）', labels: ['0%','25%','50%','75%','≥100%'] },
   green:    { min: [102,187,106], max: [27,94,32],   maxRate: 0.4,
-               title: '緑視率', labels: ['0%','10%','20%','30%','≥40%'] },
+               title: '緑視度', labels: ['0%','10%','20%','30%','≥40%'] },
   sky:      { min: [66,165,245],  max: [13,71,161],  maxRate: 0.5,
-               title: '天空率', labels: ['0%','10%','20%','30%','40%','≥50%'] },
+               title: '開放度', labels: ['0%','10%','20%','30%','40%','≥50%'] },
+  svf:      { min: [159,168,218], max: [26,35,126],  maxRate: 1.0,
+               title: '天空率（SVF）', labels: ['0%','25%','50%','75%','100%'] },
 };
 
 let currentMode = 'combined';
@@ -101,7 +126,7 @@ let allData = [];
 let markers = [];
 
 // 地図初期化
-const map = L.map('map').setView([35.68, 139.69], 6);
+const map = L.map('map').setView([33.25, 130.30], 11);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
   maxZoom: 18,
@@ -124,39 +149,86 @@ function getColor(row, mode) {
   let rate;
   if (mode === 'combined') rate = Math.min(row.green_rate + row.sky_rate, 1.0);
   else if (mode === 'green') rate = row.green_rate;
-  else rate = row.sky_rate;
+  else if (mode === 'sky') rate = row.sky_rate;
+  else rate = row.svf || 0;
   return toHex(lerpColor(g.min, g.max, rate / g.maxRate));
+}
+
+// ピンのHTML（円＋下向き三角のポインター）
+function pinHtml(color, innerHtml) {
+  return `<div style="display:flex;flex-direction:column;align-items:center;">
+    <div style="width:30px;height:30px;background:${color};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;">
+      ${innerHtml}
+    </div>
+    <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid ${color};margin-top:-2px;"></div>
+  </div>`;
+}
+
+// ポップアップHTML（緑視度・開放度系）
+function standardPopupHtml(row, hasBearing) {
+  const gPct = (row.green_rate * 100).toFixed(1);
+  const sPct = (row.sky_rate   * 100).toFixed(1);
+  const cPct = Math.min((row.green_rate + row.sky_rate)*100, 100).toFixed(1);
+  const dt   = row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : '';
+  return `
+    <div class="popup-inner">
+      <div><span style="color:#388E3C">🌿 緑視度</span> <span class="rate" style="color:#388E3C">${gPct}%</span></div>
+      <div><span style="color:#1976D2">☁️ 開放度</span> <span class="rate" style="color:#1976D2">${sPct}%</span></div>
+      <div><span style="color:#7B1FA2">📊 総合</span> <span class="rate" style="color:#7B1FA2">${cPct}%</span></div>
+      ${row.address ? `<div class="addr">📍 ${row.address}</div>` : ''}
+      ${hasBearing ? `<div class="dt">方位 ${Math.round(row.bearing)}°</div>` : ''}
+      ${dt ? `<div class="dt">${dt}</div>` : ''}
+    </div>
+  `;
+}
+
+// ポップアップHTML（天空率）
+function svfPopupHtml(row) {
+  const svfPct = ((row.svf || 0) * 100).toFixed(1);
+  const dt = row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : '';
+  return `
+    <div class="popup-inner">
+      <div><span style="color:#1A237E">◎ 天空率</span> <span class="rate" style="color:#1A237E">${svfPct}%</span></div>
+      ${row.address ? `<div class="addr">📍 ${row.address}</div>` : ''}
+      ${dt ? `<div class="dt">${dt}</div>` : ''}
+    </div>
+  `;
 }
 
 // マーカー描画
 function renderMarkers() {
   markers.forEach(m => m.remove());
   markers = [];
-  allData.forEach(row => {
+
+  const showSvf = currentMode === 'svf';
+  const rows = allData.filter(row => showSvf ? row.type === 'svf' : row.type !== 'svf');
+
+  rows.forEach(row => {
     const color = getColor(row, currentMode);
-    const circle = L.circleMarker([row.latitude, row.longitude], {
-      radius: 9,
-      fillColor: color,
-      color: '#fff',
-      weight: 2,
-      fillOpacity: 0.92,
+    const hasBearing = row.bearing !== null && row.bearing !== undefined;
+    const isSvf = row.type === 'svf';
+
+    let inner;
+    if (hasBearing) {
+      inner = `<span style="display:block;transform:rotate(${row.bearing}deg);font-size:15px;color:white;line-height:1;">▲</span>`;
+    } else if (isSvf) {
+      inner = `<span style="font-size:14px;color:white;line-height:1;">◎</span>`;
+    } else {
+      inner = `<span style="font-size:13px;color:white;line-height:1;">📊</span>`;
+    }
+
+    const marker = L.marker([row.latitude, row.longitude], {
+      icon: L.divIcon({
+        html: pinHtml(color, inner),
+        iconSize: [30, 38],
+        iconAnchor: [15, 38],
+        className: ''
+      })
     });
 
-    const gPct  = (row.green_rate * 100).toFixed(1);
-    const sPct  = (row.sky_rate   * 100).toFixed(1);
-    const cPct  = Math.min((row.green_rate + row.sky_rate)*100, 100).toFixed(1);
-    const dt    = row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : '';
-    circle.bindPopup(`
-      <div class="popup-inner">
-        <div><span style="color:#388E3C">🌿 緑視率</span> <span class="rate" style="color:#388E3C">${gPct}%</span></div>
-        <div><span style="color:#1976D2">☁️ 天空率</span> <span class="rate" style="color:#1976D2">${sPct}%</span></div>
-        <div><span style="color:#7B1FA2">📊 総合</span> <span class="rate" style="color:#7B1FA2">${cPct}%</span></div>
-        ${row.address ? `<div class="addr">📍 ${row.address}</div>` : ''}
-        ${dt ? `<div class="dt">${dt}</div>` : ''}
-      </div>
-    `);
-    circle.addTo(map);
-    markers.push(circle);
+    marker.bindPopup(isSvf ? svfPopupHtml(row) : standardPopupHtml(row, hasBearing));
+    marker.addTo(map);
+    markers.push(marker);
   });
 }
 
@@ -191,28 +263,28 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
   });
 });
 
-// データ取得
-async function loadData() {
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/analysis_results?select=*&order=created_at.desc&limit=5000`,
-      { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-    );
-    allData = await res.json();
+// GitHub Pages の JSON からデータを取得する
+fetch('social_data.json')
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then(data => {
+    allData = data;
     document.getElementById('count').textContent = `${allData.length} 件`;
     if (allData.length > 0) {
-      // データがあれば最初の点に移動
       map.setView([allData[0].latitude, allData[0].longitude], 13);
     }
     renderMarkers();
-  } catch(e) {
-    document.getElementById('count').textContent = '読み込み失敗';
-    console.error(e);
-  }
-}
+  })
+  .catch(e => {
+    const el = document.getElementById('count');
+    el.className = 'error';
+    el.textContent = `データ取得失敗: ${e.message}`;
+  });
 
 updateLegend();
-loadData();
+
+document.getElementById('home-btn').addEventListener('click', () => {
+  map.setView([33.25, 130.30], 11);
+});
 </script>
 </body>
 </html>
