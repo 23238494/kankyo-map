@@ -212,14 +212,8 @@ function renderMarkers() {
     const hasBearing = row.bearing !== null && row.bearing !== undefined;
     const isSvf = row.type === 'svf';
 
-    let inner;
-    if (hasBearing) {
-      inner = `<span style="display:block;transform:rotate(${row.bearing}deg);font-size:15px;color:white;line-height:1;">▲</span>`;
-    } else if (isSvf) {
-      inner = `<span style="font-size:14px;color:white;line-height:1;">◎</span>`;
-    } else {
-      inner = `<span style="font-size:14px;color:white;line-height:1;">●</span>`;
-    }
+    const rotation = hasBearing ? row.bearing : 0;
+    const inner = `<svg width="20" height="20" viewBox="-10 -10 20 20" style="display:block;transform:rotate(${rotation}deg)" xmlns="http://www.w3.org/2000/svg"><polygon points="0,-8 2,8 -2,8" fill="white"/></svg>`;
 
     const marker = L.marker([row.latitude, row.longitude], {
       icon: L.divIcon({
