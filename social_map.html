@@ -213,7 +213,7 @@ function renderMarkers() {
     const isSvf = row.type === 'svf';
 
     const rotation = hasBearing ? row.bearing : 0;
-    const inner = `<svg width="20" height="20" viewBox="-10 -10 20 20" style="display:block;transform:rotate(${rotation}deg)" xmlns="http://www.w3.org/2000/svg"><polygon points="0,-8 2,8 -2,8" fill="white"/></svg>`;
+    const inner = `<svg width="20" height="20" viewBox="-11 -11 22 22" style="display:block;transform:rotate(${rotation}deg)" xmlns="http://www.w3.org/2000/svg"><polygon points="0,-9 9,9 0,3 -9,9" fill="white"/></svg>`;
 
     const marker = L.marker([row.latitude, row.longitude], {
       icon: L.divIcon({
